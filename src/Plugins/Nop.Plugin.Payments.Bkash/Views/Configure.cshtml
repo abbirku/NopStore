@@ -1,0 +1,144 @@
+﻿@model Nop.Plugin.Payments.Bkash.Models.ConfigurationModel
+@inject Nop.Core.IWebHelper webHelper
+@{
+    Layout = "_ConfigurePlugin";
+}
+
+@await Component.InvokeAsync("StoreScopeConfiguration")
+
+<form asp-controller="PaymentBkash" asp-action="Configure" method="post">
+    <div class="panel-group">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <!--AppKey-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="AppKey_OverrideForStore" asp-input="AppKey" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="AppKey" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="AppKey" />
+                        <span asp-validation-for="AppKey"></span>
+                    </div>
+                </div>
+                <!--AppSecret-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="AppSecret_OverrideForStore" asp-input="AppSecret" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="AppSecret" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="AppSecret" />
+                        <span asp-validation-for="AppSecret"></span>
+                    </div>
+                </div>
+                <!--Username-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Username_OverrideForStore" asp-input="Username" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Username" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="Username" />
+                        <span asp-validation-for="Username"></span>
+                    </div>
+                </div>
+                <!--Password-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Password_OverrideForStore" asp-input="Password" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Password" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="Password" />
+                        <span asp-validation-for="Password"></span>
+                    </div>
+                </div>
+                <!--TestAppKey-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="TestAppKey_OverrideForStore" asp-input="TestAppKey" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="TestAppKey" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="TestAppKey" />
+                        <span asp-validation-for="TestAppKey"></span>
+                    </div>
+                </div>
+                <!--TestAppSecret-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="TestAppSecret_OverrideForStore" asp-input="TestAppSecret" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="TestAppSecret" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="TestAppSecret" />
+                        <span asp-validation-for="TestAppSecret"></span>
+                    </div>
+                </div>
+                <!--TestUsername-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="TestUsername_OverrideForStore" asp-input="TestUsername" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="TestUsername" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="TestUsername" />
+                        <span asp-validation-for="TestUsername"></span>
+                    </div>
+                </div>
+                <!--TestPassword-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="TestPassword_OverrideForStore" asp-input="TestPassword" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="TestPassword" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="TestPassword" />
+                        <span asp-validation-for="TestPassword"></span>
+                    </div>
+                </div>
+                <!--UseSandbox-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="UseSandbox_OverrideForStore" asp-input="UseSandbox" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="UseSandbox" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="UseSandbox" />
+                        <span asp-validation-for="UseSandbox"></span>
+                    </div>
+                </div>
+                <!--SandBoxUrl-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="SandBoxUrl_OverrideForStore" asp-input="SandBoxUrl" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="SandBoxUrl" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="SandBoxUrl" />
+                        <span asp-validation-for="SandBoxUrl"></span>
+                    </div>
+                </div>
+                <!--LiveUrl-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="LiveUrl_OverrideForStore" asp-input="LiveUrl" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="LiveUrl" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="LiveUrl" />
+                        <span asp-validation-for="LiveUrl"></span>
+                    </div>
+                </div>
+                <!--Submit button-->
+                <div class="form-group">
+                    <div class="col-md-9 col-md-offset-3">
+                        <input type="submit" name="save" class="btn bg-primary" value="@T("Admin.Common.Save")" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+

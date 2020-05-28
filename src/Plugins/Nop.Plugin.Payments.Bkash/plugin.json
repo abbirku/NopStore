@@ -1,0 +1,11 @@
+{
+  "Group": "Payment methods",
+  "FriendlyName": "Bkash",
+  "SystemName": "Payments.Bkash",
+  "Version": "1.00",
+  "SupportedVersions": [ "4.20" ],
+  "Author": "DSB team",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Payments.Bkash.dll",
+  "Description": "This plugin allows paying with bKash"
+}
