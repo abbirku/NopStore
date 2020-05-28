@@ -27,13 +27,13 @@ namespace Nop.Plugin.Payments.Bkash
         }
 
 
-        public bool SupportCapture => throw new NotImplementedException();
+        public bool SupportCapture => false;
 
-        public bool SupportPartiallyRefund => throw new NotImplementedException();
+        public bool SupportPartiallyRefund => false;
 
-        public bool SupportRefund => throw new NotImplementedException();
+        public bool SupportRefund => false;
 
-        public bool SupportVoid => throw new NotImplementedException();
+        public bool SupportVoid => false;
 
         public RecurringPaymentType RecurringPaymentType => throw new NotImplementedException();
 
