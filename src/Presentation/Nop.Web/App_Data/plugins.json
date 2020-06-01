@@ -18,9 +18,7 @@
     "ExternalAuth.Facebook",
     "Payments.Bkash"
   ],
-  "PluginNamesToUninstall": [
-    "Payments.Bkash"
-  ],
+  "PluginNamesToUninstall": [],
   "PluginNamesToDelete": [],
   "PluginNamesToInstall": []
 }

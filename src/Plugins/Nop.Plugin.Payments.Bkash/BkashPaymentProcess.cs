@@ -16,56 +16,64 @@ namespace Nop.Plugin.Payments.Bkash
         private readonly IWebHelper _webHelper;
         private readonly ILocalizationService _localizationService;
         private readonly ISettingService _settingService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public BkashPaymentProcess(IWebHelper webHelper,
             ILocalizationService localizationService,
-            ISettingService settingService)
+            ISettingService settingService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _webHelper = webHelper;
             _localizationService = localizationService;
             _settingService = settingService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
 
-        public bool SupportCapture => false;
+        public bool SupportCapture => false;//Think about it later
+        public bool SupportPartiallyRefund => false; //Don't need
+        public bool SupportRefund => false; //Don't need
+        public bool SupportVoid => false;//Think about it later
+        public RecurringPaymentType RecurringPaymentType => RecurringPaymentType.NotSupported;//Don't need
+        public PaymentMethodType PaymentMethodType => PaymentMethodType.Redirection;
+        public bool SkipPaymentInfo => true;
+        public string PaymentMethodDescription
+        {
+            //return description of this payment method to be display on "payment method" checkout step. good practice is to make it localizable
+            //for example, for a redirection payment method, description may be like this: "You will be redirected to PayPal site to complete the payment"
+            get { return _localizationService.GetResource("Plugins.Payments.Bkash.PaymentMethodDescription"); }
+        }
 
-        public bool SupportPartiallyRefund => false;
-
-        public bool SupportRefund => false;
-
-        public bool SupportVoid => false;
-
-        public RecurringPaymentType RecurringPaymentType => throw new NotImplementedException();
-
-        public PaymentMethodType PaymentMethodType => throw new NotImplementedException();
-
-        public bool SkipPaymentInfo => throw new NotImplementedException();
-
-        public string PaymentMethodDescription => throw new NotImplementedException();
-
+        //Don't need
         public CancelRecurringPaymentResult CancelRecurringPayment(CancelRecurringPaymentRequest cancelPaymentRequest)
         {
-            throw new NotImplementedException();
+            return new CancelRecurringPaymentResult { Errors = new[] { "Recurring payment not supported" } };
         }
 
         public bool CanRePostProcessPayment(Order order)
         {
-            throw new NotImplementedException();
+            if (order == null)
+                throw new ArgumentNullException(nameof(order));
+
+            return true;
         }
 
+        //Think about it later
         public CapturePaymentResult Capture(CapturePaymentRequest capturePaymentRequest)
         {
-            throw new NotImplementedException();
+            return new CapturePaymentResult { Errors = new[] { "Capture method not supported" } };
         }
 
+        //Don't need
         public decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
         {
-            throw new NotImplementedException();
+            return 0;
         }
 
+        //Don't need
         public ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
-            throw new NotImplementedException();
+            return new ProcessPaymentRequest();
         }
 
         public override string GetConfigurationPageUrl()
@@ -75,47 +83,56 @@ namespace Nop.Plugin.Payments.Bkash
 
         public string GetPublicViewComponentName()
         {
-            throw new NotImplementedException();
+            return "PaymentBkash";
         }
 
         public bool HidePaymentMethod(IList<ShoppingCartItem> cart)
         {
-            throw new NotImplementedException();
+            return false;
         }
 
+        //Think about it later
         public void PostProcessPayment(PostProcessPaymentRequest postProcessPaymentRequest)
         {
-            throw new NotImplementedException();
+            var baseUrl = "http://localhost:15536/";
+            var orderNumber = postProcessPaymentRequest.Order.Id.ToString();
+            var orderTotal = postProcessPaymentRequest.Order.OrderTotal;
+
+            var url = $"{baseUrl}Plugins/Bkash/BkashCheckout?orderNumber={orderNumber}&orderTotal={orderTotal}";
+            _httpContextAccessor.HttpContext.Response.Redirect(url);
         }
 
+        //Think about it later
         public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {
-            throw new NotImplementedException();
+            return new ProcessPaymentResult();
         }
 
+        //Don't need
         public ProcessPaymentResult ProcessRecurringPayment(ProcessPaymentRequest processPaymentRequest)
         {
-            throw new NotImplementedException();
+            return new ProcessPaymentResult { Errors = new[] { "Recurring payment not supported" } };
         }
 
+        //Don't need
         public RefundPaymentResult Refund(RefundPaymentRequest refundPaymentRequest)
         {
-            throw new NotImplementedException();
+            return new RefundPaymentResult { Errors = new[] { "Recurring payment not supported" } };
         }
 
+        //Don't need
         public IList<string> ValidatePaymentForm(IFormCollection form)
         {
-            throw new NotImplementedException();
+            return new List<string>();
         }
 
+        //Think about it later
         public VoidPaymentResult Void(VoidPaymentRequest voidPaymentRequest)
         {
-            throw new NotImplementedException();
+            return new VoidPaymentResult { Errors = new[] { "Void method not supported" } };
         }
 
-        /// <summary>
-        /// Install the plugin
-        /// </summary>
+        // Install the plugin
         public override void Install()
         {
             //settings
@@ -158,13 +175,12 @@ namespace Nop.Plugin.Payments.Bkash
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.LiveUrl", "LiveUrl");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.LiveUrl.Hint", "Enter Live Url");
 
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.PaymentMethodDescription", "Pay with bkash");
 
             base.Install();
         }
 
-        /// <summary>
-        /// Uninstall the plugin
-        /// </summary>
+        // Uninstall the plugin
         public override void Uninstall()
         {
             //settings
@@ -182,6 +198,7 @@ namespace Nop.Plugin.Payments.Bkash
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.UseSandbox");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.SandBoxUrl");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.LiveUrl");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.PaymentMethodDescription");
 
             base.Uninstall();
         }

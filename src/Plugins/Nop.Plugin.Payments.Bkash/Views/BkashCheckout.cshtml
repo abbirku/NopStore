@@ -1,0 +1,130 @@
+﻿@model Nop.Plugin.Payments.Bkash.Models.PaymentModel
+@{
+    Layout = "_ColumnsOne";
+    Html.AddScriptParts(ResourceLocation.Footer, "~/Plugins/Payments.Bkash/Scripts/prism.js");
+}
+
+<div class="page checkout-page order-completed-page">
+    <div class="page-title">
+        <h1>Pay with bKash</h1>
+    </div>
+    <div class="page-body checkout-data">
+        <div class="section order-completed">
+            <div class="title">
+                <strong>Your order has been successfully placed. Click 'Pay with bKash' to continue payment.</strong>
+            </div>
+            <div class="details">
+                <div class="order-number">
+                    <strong>Order number: @Model.OrderNumber</strong>
+                </div>
+                <div class="details-link">
+                    <a href="/orderdetails/@Model.OrderNumber" target="_blank">Click here for order details.</a>
+                </div>
+                <span id="data_area"
+                      data-order-number="@Model.OrderNumber"
+                      data-order-total="@Model.OrderTotal"
+                      data-success-url="@Model.SuccessUrl"
+                      data-return-url="@Model.ReturnUrl"
+                      data-currency="@Model.Currency"
+                      data-create-checkout-url="@Model.CreateUrl"
+                      data-execute-checkout-url="@Model.ExecuteUrl"></span>
+                <div class="shopping-cart-page">
+                    <button id="bKash_button"
+                            disabled="disabled"
+                            class="button-1 checkout-button">
+                        Pay with bKash
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"
+        integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+        crossorigin="anonymous"></script>
+@if (Model.UseSandBox)
+{
+    <script src="https://scripts.sandbox.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout-sandbox.js"></script>
+}
+else
+{
+    <script src="https://scripts.pay.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout.js"></script>
+}
+<script>
+    let paymentID;
+    //let createCheckoutUrl = 'https://merchantserver.sandbox.bka.sh/api/checkout/v1.2.0-beta/payment/create';
+    //let executeCheckoutUrl = 'https://merchantserver.sandbox.bka.sh/api/checkout/v1.2.0-beta/payment/execute';
+    var paymentConfig = {
+        createCheckoutURL: '@Model.CreateUrl',
+        executeCheckoutURL: '@Model.ExecuteUrl',
+    };
+    let successUrl = '@Model.SuccessUrl';
+    let returnUrl = '@Model.ReturnUrl';
+    let orderNumber = '@Model.OrderNumber';
+    let orderTotal = '@Model.OrderTotal';
+
+    $(document).ready(function () {
+        initBkash();
+    });
+
+    function initBkash() {
+        bKash.init({
+            paymentMode: 'checkout', // Performs a single checkout.
+            paymentRequest: { "id": orderNumber, "amount": orderTotal, "intent": 'sale' },
+            createRequest: function (request) {
+                $.ajax({
+                    url: paymentConfig.createCheckoutURL,
+                    type: 'POST',
+                    //contentType: 'application/json',
+                    data: request,
+                    success: function (data) {
+                        if (data && data.paymentID != null) {
+                            paymentID = data.paymentID;
+                            bKash.create().onSuccess(data);
+                        }
+                        else {
+                            bKash.create().onError(); // Run clean up code
+                            alert(data.errorMessage + "Tag should be 2 digit, Length should be 2 digit, Value should be number of character mention in Length, ex. MI041234 , supported tags are MI, MW, RF");
+                        }
+                    },
+                    error: function () {
+                        bKash.create().onError(); // Run clean up code
+                        alert('Error occurred');
+                    }
+                });
+            },
+            executeRequestOnAuthorization: function () {
+                console.log('PaymentId');
+                console.log(paymentID);
+                $.ajax({
+                    url: paymentConfig.executeCheckoutURL,
+                    type: 'POST',
+                    //contentType: 'application/json',
+                    data: { "id": orderNumber, "paymentID": paymentID },
+                    success: function (data) {
+                        if (data && data.paymentID != null) {
+                            // On success, perform your desired action
+                            console.log('[SUCCESS] data : ' + JSON.stringify(data));
+                            window.location.href = successUrl;
+                        } else {
+                            alert('[ERROR] data : ' + JSON.stringify(data));
+                            bKash.execute().onError();//run clean up code
+                        }
+
+                    },
+                    error: function () {
+                        bKash.execute().onError(); // Run clean up code
+                        alert('An alert has occurred during execute');
+                    }
+                });
+            },
+            onClose: function () {
+                alert('User has clicked the close button');
+            }
+        });
+
+        $('#bKash_button').removeAttr('disabled');
+    }
+</script>
+

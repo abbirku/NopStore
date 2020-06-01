@@ -1,12 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using A4A.BKASH.Factory;
+using A4A.BKASH.Service;
+using A4A.BKASH.ViewModel.Request;
+using A4A.BKASH.ViewModel.Response;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Newtonsoft.Json;
 using Nop.Core;
+using Nop.Core.Domain.Directory;
+using Nop.Core.Domain.Orders;
 using Nop.Plugin.Payments.Bkash.Models;
+using Nop.Plugin.Payments.Bkash.Utilities;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Messages;
+using Nop.Services.Orders;
+using Nop.Services.Payments;
 using Nop.Services.Security;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
@@ -17,12 +30,16 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
     public class PaymentBkashController : BasePaymentController
     {
         #region Fields
-        
+
         private readonly IPermissionService _permissionService;
         private readonly IStoreContext _storeContext;
         private readonly ISettingService _settingService;
         private readonly INotificationService _notificationService;
         private readonly ILocalizationService _localizationService;
+        private readonly IWorkContext _workContext;
+        private readonly BkashPaymentSettings _bkashPaymentSettings;
+        private readonly IOrderService _orderService;
+        private int _executeBKashPaymentCall;
 
         #endregion
 
@@ -32,13 +49,20 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
             IStoreContext storeContext,
             ISettingService settingService,
             INotificationService notificationService,
-            ILocalizationService localizationService)
+            ILocalizationService localizationService,
+            IWorkContext workContext,
+            BkashPaymentSettings bkashPaymentSettings,
+            IOrderService orderService)
         {
             _permissionService = permissionService;
             _storeContext = storeContext;
             _settingService = settingService;
             _notificationService = notificationService;
             _localizationService = localizationService;
+            _workContext = workContext;
+            _bkashPaymentSettings = bkashPaymentSettings;
+            _orderService = orderService;
+            _executeBKashPaymentCall = 0;
         }
 
         #endregion
@@ -144,7 +168,222 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
 
             return Configure();
         }
-        
+
+        public IActionResult BkashCheckout(string orderNumber = "", decimal orderTotal = 0)
+        {
+            var orderNum = int.Parse(orderNumber);
+            var paymentMethod = new PaymentModel
+            {
+                UseSandBox = _bkashPaymentSettings.UseSandbox,
+                OrderNumber = orderNumber,
+                Currency = /*_workContext.WorkingCurrency.CurrencyCode*/"BDT",
+                OrderTotal = orderTotal,
+                ReturnUrl = Url.Action("BkashError", "PaymentBkash", null, Request.Scheme),
+                SuccessUrl = Url.Action("Completed", "Checkout", new { orderId = orderNum }, Request.Scheme),
+                CreateUrl = Url.Action("BkashCreate", "PaymentBkash", null, Request.Scheme),
+                ExecuteUrl = Url.Action("BkashExecute", "PaymentBkash", null, Request.Scheme)
+            };
+
+            return View("~/Plugins/Payments.Bkash/Views/BkashCheckout.cshtml", paymentMethod);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> BkashCreate([FromForm]int id)
+        {
+            try
+            {
+                var order = _orderService.GetOrderById(id);
+                var provider = new BkashProvider(_bkashPaymentSettings);
+                var payload = new BkashCheckoutCreateRequestViewModel
+                {
+                    Provider = provider,
+                    Amount = Math.Round(order.OrderTotal, 2),
+                    Currency = "BDT",
+                    Intent = "authorization", //"sale",
+                    MerchantInvoiceNumber = id.ToString(),
+                };
+
+                var result = await BkashCheckoutService.CreatePayment(payload);
+
+                var req = JsonConvert.SerializeObject(payload);
+                var res = JsonConvert.SerializeObject(result);
+
+                //Log.Info($"Grant Req: {result.SerRequest}");
+                //Log.Info($"Grant Res: {result.SerResponse}");
+
+                //Log.Info($"Create Payment Req: {req}");
+                //Log.Info($"Create Payment Res: {res}");
+
+                return Content(res, "application/json");
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> BkashExecute([FromForm]Payload payload)
+        {
+            try
+            {
+                _executeBKashPaymentCall += 1;
+                var terminate = false;
+                var executeRes = "";
+                var transactionId = string.Empty;
+                var totalTime = 0;
+                var t = new Thread(async () =>
+                {
+                    var provider = new BkashProvider(_bkashPaymentSettings);
+                    var result = await BkashCheckoutService.ExecutePayment(new BkashCheckoutExecutePaymentRequestViewModel()
+                    {
+                        Provider = provider,
+                        PaymentId = payload.PaymentID
+                    });
+                    executeRes = JsonConvert.SerializeObject(result);
+                    //Log.Info($"Execute Payment Res: {executeRes}");
+
+                    if (result.Success && string.IsNullOrEmpty(result.ErrorCode) && !terminate)
+                    {
+                        //Changed
+                        //var voidPayment = await VoidBkashPayment(paymentID); //Only for test
+                        var captureResult = await CaptureBkashPayment(payload.PaymentID);
+                        //var queryRes = await QueryPayment(paymentID); //Only for test
+                        //var srcTrRes = await SearchTransactionDetails(result.TransactionId); //Only for test
+                        transactionId = result.TransactionId;
+                    }
+
+                    terminate = true;
+                });
+                t.Start();
+
+                while (!terminate && totalTime < 32000)
+                {
+                    await Task.Delay(2000);
+                    totalTime += 2000;
+                }
+
+                if (totalTime > 32000)
+                {
+                    terminate = true;
+                    t.Abort();
+                    var queryRes = await QueryPayment(payload.PaymentID);
+                    if (queryRes.TransactionStatus == "Authorized")
+                    {
+                        var captureResult = await CaptureBkashPayment(payload.PaymentID);
+                        executeRes = JsonConvert.SerializeObject(captureResult);
+                        transactionId = queryRes.TransactionId;
+                    }
+                    else if (queryRes.TransactionStatus == "Initiated" && _executeBKashPaymentCall < 2)
+                        await BkashCreate(payload.Id);
+                }
+
+                return Content(executeRes, "application/json");
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
+
+        [HttpPost]
+        public async Task<BkashCheckoutVoidResponseViewModel> CaptureBkashPayment(string orderNumber)
+        {
+            try
+            {
+                var provider = new BkashProvider(_bkashPaymentSettings);
+                var result = await BkashCheckoutService.VoidOrCapturePayment(new BkashCheckoutVoidPaymentRequestViewModel
+                {
+                    Provider = provider,
+                    PaymentId = orderNumber,
+                    RequestType = VoideCheckoutRequestEnum.Capture
+                });
+                var jsonR = JsonConvert.SerializeObject(result);
+                //Log.Info($"Capture Payment Res: {jsonR}");
+                return result;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        [HttpPost]
+        public async Task<JsonResult> VoidBkashPayment(string orderNumber)
+        {
+            try
+            {
+                var provider = new BkashProvider(_bkashPaymentSettings);
+                var result = await BkashCheckoutService.VoidOrCapturePayment(new BkashCheckoutVoidPaymentRequestViewModel()
+                {
+                    Provider = provider,
+                    PaymentId = orderNumber,
+                    //IdToken = idToken,
+                    //RefreshToken = refreshToken,
+                    RequestType = VoideCheckoutRequestEnum.Void
+                });
+                var jsonR = JsonConvert.SerializeObject(result);
+                //Log.Info($"Void Payment: {jsonR}");
+                return Json(new { success = true, data = jsonR });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
+        }
+
+        public async Task<BkashCheckoutExecutePaymentResponseViewModel> QueryPayment(string paymentId)
+        {
+            try
+            {
+                //Dll->VeifyPayment
+                //Project->VerifyPayment
+                var provider = new BkashProvider(_bkashPaymentSettings);
+                var result = await BkashCheckoutService.VerifyPayment(new BkashCheckoutVerifyPaymentRequestViewModel()
+                {
+                    Provider = provider,
+                    PaymentId = paymentId
+                });
+                var jsonR = JsonConvert.SerializeObject(result);
+                //Log.Info($"Query Payment Res: {jsonR}");
+                return result;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public async Task<JsonResult> SearchTransactionDetails(string transactionId)
+        {
+            try
+            {
+                var provider = new BkashProvider(_bkashPaymentSettings);
+                var result = await BkashCheckoutService.SearchTransactionDetails(new BkashSearchTransactionDetailsRequestViewModel()
+                {
+                    Provider = provider,
+                    TransactionId = transactionId
+                });
+                var jsonR = JsonConvert.SerializeObject(result);
+                //Log.Info($"Search Transaction Res: {jsonR}");
+                return Json(new { success = true, data = jsonR });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
+        }
+
+        public IActionResult BkashError(string errorMessage = "")
+        {
+            var messageModel = new Message
+            {
+                ErrorMessage = errorMessage
+            };
+            return View("~/Plugins/Payments.Bkash/Views/BkashError.cshtml", messageModel);
+        }
         #endregion
     }
 }
