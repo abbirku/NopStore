@@ -373,6 +373,8 @@ namespace Nop.Web.Controllers
         public virtual IActionResult Login(bool? checkoutAsGuest)
         {
             var model = _customerModelFactory.PrepareLoginModel(checkoutAsGuest);
+            model.Username = "admin@yourstore.com";
+            model.Password = "123456";
             return View(model);
         }
 
