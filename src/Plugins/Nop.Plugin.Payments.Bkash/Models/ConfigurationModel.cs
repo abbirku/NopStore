@@ -42,16 +42,16 @@ namespace Nop.Plugin.Payments.Bkash.Models
         public string TestPassword { get; set; }
         public bool TestPassword_OverrideForStore { get; set; }
 
+        [NopResourceDisplayName("Plugins.Payments.Bkash.Fields.BaseUrl")]
+        public string BaseUrl { get; set; }
+        public bool BaseUrl_OverrideForStore { get; set; }
+
         [NopResourceDisplayName("Plugins.Payments.Bkash.Fields.UseSandbox")]
         public bool UseSandbox { get; set; }
         public bool UseSandbox_OverrideForStore { get; set; }
 
-        [NopResourceDisplayName("Plugins.Payments.Bkash.Fields.SandBoxUrl")]
-        public string SandBoxUrl { get; set; }
-        public bool SandBoxUrl_OverrideForStore { get; set; }
-
-        [NopResourceDisplayName("Plugins.Payments.Bkash.Fields.LiveUrl")]
-        public string LiveUrl { get; set; }
-        public bool LiveUrl_OverrideForStore { get; set; }
+        [NopResourceDisplayName("Plugins.Payments.Bkash.Fields.DoesCreateSuccessfulPayment")]
+        public bool DoesCreateSuccessfulPayment { get; set; }
+        public bool DoesCreateSuccessfulPayment_OverrideForStore { get; set; }
     }
 }

@@ -16,8 +16,8 @@ namespace Nop.Plugin.Payments.Bkash
         public string TestAppSecret { get; set; }
         public string TestUsername { get; set; }
         public string TestPassword { get; set; }
+        public string BaseUrl { get; set; }
         public bool UseSandbox { get; set; }
-        public string SandBoxUrl { get; set; }
-        public string LiveUrl { get; set; }
+        public bool DoesCreateSuccessfulPayment { get; set; }
     }
 }

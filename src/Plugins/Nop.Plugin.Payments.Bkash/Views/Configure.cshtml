@@ -98,6 +98,17 @@
                         <span asp-validation-for="TestPassword"></span>
                     </div>
                 </div>
+                <!--BaseUrl-->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="BaseUrl_OverrideForStore" asp-input="BaseUrl" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="BaseUrl" />
+                    </div>
+                    <div class="col-md-4">
+                        <nop-editor asp-for="BaseUrl" />
+                        <span asp-validation-for="BaseUrl"></span>
+                    </div>
+                </div>
                 <!--UseSandbox-->
                 <div class="form-group">
                     <div class="col-md-3">
@@ -109,26 +120,15 @@
                         <span asp-validation-for="UseSandbox"></span>
                     </div>
                 </div>
-                <!--SandBoxUrl-->
+                <!--DoesCreateSuccessfulPayment-->
                 <div class="form-group">
                     <div class="col-md-3">
-                        <nop-override-store-checkbox asp-for="SandBoxUrl_OverrideForStore" asp-input="SandBoxUrl" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                        <nop-label asp-for="SandBoxUrl" />
+                        <nop-override-store-checkbox asp-for="DoesCreateSuccessfulPayment_OverrideForStore" asp-input="DoesCreateSuccessfulPayment" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="DoesCreateSuccessfulPayment" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="SandBoxUrl" />
-                        <span asp-validation-for="SandBoxUrl"></span>
-                    </div>
-                </div>
-                <!--LiveUrl-->
-                <div class="form-group">
-                    <div class="col-md-3">
-                        <nop-override-store-checkbox asp-for="LiveUrl_OverrideForStore" asp-input="LiveUrl" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                        <nop-label asp-for="LiveUrl" />
-                    </div>
-                    <div class="col-md-9">
-                        <nop-editor asp-for="LiveUrl" />
-                        <span asp-validation-for="LiveUrl"></span>
+                        <nop-editor asp-for="DoesCreateSuccessfulPayment" />
+                        <span asp-validation-for="DoesCreateSuccessfulPayment"></span>
                     </div>
                 </div>
                 <!--Submit button-->

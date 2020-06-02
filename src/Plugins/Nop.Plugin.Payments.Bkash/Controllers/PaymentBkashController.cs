@@ -90,9 +90,9 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
                 TestAppSecret = bkashPaymentSettings.TestAppSecret,
                 TestUsername = bkashPaymentSettings.TestUsername,
                 TestPassword = bkashPaymentSettings.TestPassword,
+                BaseUrl = bkashPaymentSettings.BaseUrl,
                 UseSandbox = bkashPaymentSettings.UseSandbox,
-                SandBoxUrl = bkashPaymentSettings.SandBoxUrl,
-                LiveUrl = bkashPaymentSettings.LiveUrl,
+                DoesCreateSuccessfulPayment = bkashPaymentSettings.DoesCreateSuccessfulPayment,
                 ActiveStoreScopeConfiguration = storeScope
             };
 
@@ -107,9 +107,9 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
             model.TestAppSecret_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.TestAppSecret, storeScope);
             model.TestUsername_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.TestUsername, storeScope);
             model.TestPassword_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.TestPassword, storeScope);
+            model.BaseUrl_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.BaseUrl, storeScope);
             model.UseSandbox_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.UseSandbox, storeScope);
-            model.SandBoxUrl_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.SandBoxUrl, storeScope);
-            model.LiveUrl_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.LiveUrl, storeScope);
+            model.DoesCreateSuccessfulPayment_OverrideForStore = _settingService.SettingExists(bkashPaymentSettings, x => x.DoesCreateSuccessfulPayment, storeScope);
 
             return View("~/Plugins/Payments.Bkash/Views/Configure.cshtml", model);
         }
@@ -141,9 +141,9 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
             bkashPaymentSettings.TestAppSecret = model.TestAppSecret;
             bkashPaymentSettings.TestUsername = model.TestUsername;
             bkashPaymentSettings.TestPassword = model.TestPassword;
+            bkashPaymentSettings.BaseUrl = model.BaseUrl;
             bkashPaymentSettings.UseSandbox = model.UseSandbox;
-            bkashPaymentSettings.SandBoxUrl = model.SandBoxUrl;
-            bkashPaymentSettings.LiveUrl = model.LiveUrl;
+            bkashPaymentSettings.DoesCreateSuccessfulPayment = model.DoesCreateSuccessfulPayment;
 
 
             /* We do not clear cache after each setting update.
@@ -157,9 +157,9 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
             _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.TestAppSecret, model.TestAppSecret_OverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.TestUsername, model.TestUsername_OverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.TestPassword, model.TestPassword_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.BaseUrl, model.BaseUrl_OverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.UseSandbox, model.UseSandbox_OverrideForStore, storeScope, false);
-            _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.SandBoxUrl, model.SandBoxUrl_OverrideForStore, storeScope, false);
-            _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.LiveUrl, model.LiveUrl_OverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(bkashPaymentSettings, x => x.DoesCreateSuccessfulPayment, model.DoesCreateSuccessfulPayment_OverrideForStore, storeScope, false);
 
             //now clear settings cache
             _settingService.ClearCache();
@@ -218,8 +218,8 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
             }
             catch (Exception ex)
             {
-
-                throw;
+                var res = JsonConvert.SerializeObject(new BkashCheckoutCreatePaymentResponse { ErrorMessage = ex.GetBaseException().Message });
+                return Content(res, "application/json");
             }
         }
 
@@ -246,11 +246,16 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
 
                     if (result.Success && string.IsNullOrEmpty(result.ErrorCode) && !terminate)
                     {
-                        //Changed
-                        //var voidPayment = await VoidBkashPayment(paymentID); //Only for test
-                        var captureResult = await CaptureBkashPayment(payload.PaymentID);
-                        //var queryRes = await QueryPayment(paymentID); //Only for test
-                        //var srcTrRes = await SearchTransactionDetails(result.TransactionId); //Only for test
+                        if (_bkashPaymentSettings.DoesCreateSuccessfulPayment)
+                        {
+                            var captureResult = await CaptureBkashPayment(payload.PaymentID);
+                            var queryRes = await QueryPayment(payload.PaymentID);
+                            var srcTrRes = await SearchTransactionDetails(result.TransactionId);
+                        }
+                        else
+                        {
+                            var voidPayment = await VoidBkashPayment(payload.PaymentID);
+                        }
                         transactionId = result.TransactionId;
                     }
 
@@ -283,8 +288,8 @@ namespace Nop.Plugin.Payments.Bkash.Controllers
             }
             catch (Exception ex)
             {
-
-                throw;
+                var res = JsonConvert.SerializeObject(new BkashCheckoutExecutePaymentResponseViewModel { ErrorMessage = ex.GetBaseException().Message });
+                return Content(res, "application/json");
             }
         }
 

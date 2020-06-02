@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Policy;
 using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
@@ -17,23 +18,26 @@ namespace Nop.Plugin.Payments.Bkash
         private readonly ILocalizationService _localizationService;
         private readonly ISettingService _settingService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly BkashPaymentSettings _bkashPaymentSettings;
 
         public BkashPaymentProcess(IWebHelper webHelper,
             ILocalizationService localizationService,
             ISettingService settingService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            BkashPaymentSettings bkashPaymentSettings)
         {
             _webHelper = webHelper;
             _localizationService = localizationService;
             _settingService = settingService;
             _httpContextAccessor = httpContextAccessor;
+            _bkashPaymentSettings = bkashPaymentSettings;
         }
 
 
-        public bool SupportCapture => false;//Think about it later
+        public bool SupportCapture => false;//Don't need
         public bool SupportPartiallyRefund => false; //Don't need
         public bool SupportRefund => false; //Don't need
-        public bool SupportVoid => false;//Think about it later
+        public bool SupportVoid => false;//Don't need
         public RecurringPaymentType RecurringPaymentType => RecurringPaymentType.NotSupported;//Don't need
         public PaymentMethodType PaymentMethodType => PaymentMethodType.Redirection;
         public bool SkipPaymentInfo => true;
@@ -58,7 +62,7 @@ namespace Nop.Plugin.Payments.Bkash
             return true;
         }
 
-        //Think about it later
+        //Don't need
         public CapturePaymentResult Capture(CapturePaymentRequest capturePaymentRequest)
         {
             return new CapturePaymentResult { Errors = new[] { "Capture method not supported" } };
@@ -91,10 +95,9 @@ namespace Nop.Plugin.Payments.Bkash
             return false;
         }
 
-        //Think about it later
         public void PostProcessPayment(PostProcessPaymentRequest postProcessPaymentRequest)
         {
-            var baseUrl = "http://localhost:15536/";
+            var baseUrl = _bkashPaymentSettings.BaseUrl;
             var orderNumber = postProcessPaymentRequest.Order.Id.ToString();
             var orderTotal = postProcessPaymentRequest.Order.OrderTotal;
 
@@ -102,7 +105,7 @@ namespace Nop.Plugin.Payments.Bkash
             _httpContextAccessor.HttpContext.Response.Redirect(url);
         }
 
-        //Think about it later
+        //Don't need
         public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {
             return new ProcessPaymentResult();
@@ -126,7 +129,7 @@ namespace Nop.Plugin.Payments.Bkash
             return new List<string>();
         }
 
-        //Think about it later
+        //Don't need
         public VoidPaymentResult Void(VoidPaymentRequest voidPaymentRequest)
         {
             return new VoidPaymentResult { Errors = new[] { "Void method not supported" } };
@@ -138,7 +141,8 @@ namespace Nop.Plugin.Payments.Bkash
             //settings
             _settingService.SaveSetting(new BkashPaymentSettings
             {
-                UseSandbox = true
+                UseSandbox = true,
+                DoesCreateSuccessfulPayment = true
             });
 
             //locales
@@ -166,14 +170,14 @@ namespace Nop.Plugin.Payments.Bkash
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.TestPassword", "Test Password");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.TestPassword.Hint", "Enter test Password");
 
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.BaseUrl", "Base Url");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.BaseUrl.Hint", "Enter base url");
+
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.UseSandbox", "Use Sandbox");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.UseSandbox.Hint", "Check to enable Sandbox (testing environment).");
 
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.SandBoxUrl", "SandBoxUrl");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.SandBoxUrl.Hint", "Enter SandBox Url");
-
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.LiveUrl", "LiveUrl");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.LiveUrl.Hint", "Enter Live Url");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.DoesCreateSuccessfulPayment", "Does Create Successful Payment");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.Fields.DoesCreateSuccessfulPayment.Hint", "Check to enable successful payment.");
 
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Bkash.PaymentMethodDescription", "Pay with bkash");
 
@@ -195,9 +199,9 @@ namespace Nop.Plugin.Payments.Bkash
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.TestAppSecret");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.TestUsername");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.TestPassword");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.BaseUrl");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.UseSandbox");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.SandBoxUrl");
-            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.LiveUrl");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.Fields.DoesCreateSuccessfulPayment");
             _localizationService.DeletePluginLocaleResource("Plugins.Payments.Bkash.PaymentMethodDescription");
 
             base.Uninstall();
